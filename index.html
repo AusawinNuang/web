@@ -1,20 +1,36 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>IPLUS Player — HLS + DASH + ปรับขนาด</title>
-  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <title>HLS Player (.m3u8)</title>
+    <!-- 1. โหลดไลบรารี hls.js ผ่าน CDN -->
+    <script src="https://jsdelivr.net"></script>
+</head>
+<body>
 
-  
-  
-  <!-- 🔥 ไลบรารี HLS + DASH -->
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.21/dist/hls.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dashjs@4.7.4/dist/dash.all.min.js"></script>
+    <!-- 2. แท็ก Video ของ HTML5 -->
+    <video id="video" controls width="640" height="360"></video>
 
- 
-  
-  
+    <script>
+        var video = document.getElementById('video');
+        // ใส่ URL ไฟล์ .m3u8 ของคุณที่นี่
+        var videoSrc = 'https://example.com'; 
+
+        // ตรวจสอบว่าเบราว์เซอร์รองรับ hls.js หรือไม่ (เช่น Chrome, Firefox, Edge)
+        if (Hls.isSupported()) {
+            var hls = new Hls();
+            hls.loadSource(videoSrc);
+            hls.attachMedia(video);
+        }
+        // สำหรับ Safari (iOS/Mac) ซึ่งรองรับการเล่น HLS (.m3u8) แบบ Native อยู่แล้ว
+        else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = videoSrc;
+        }
+    </script>
+
+</body>
+</html>
+
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
