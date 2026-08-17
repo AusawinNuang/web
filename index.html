@@ -6,35 +6,14 @@
   <title>IPLUS Player — HLS + DASH + ปรับขนาด</title>
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
 
-   <video id="my-video" controls width="640" height="360"></video>
+  
   
   <!-- 🔥 ไลบรารี HLS + DASH -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.21/dist/hls.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dashjs@4.7.4/dist/dash.all.min.js"></script>
 
  
-
-  <script>
-  var video = document.getElementById('my-video');
-  var videoSrc = 'ใส่ลิงก์ไฟล์ของคุณตรงนี้.m3u8';
-
-  // ตรวจสอบว่าเบราว์เซอร์รองรับ HLS.js หรือไม่
-  if (Hls.isSupported()) {
-    var hls = new Hls();
-    hls.loadSource(videoSrc);
-    hls.attachMedia(video);
-    hls.on(Hls.Events.MANIFEST_PARSED, function() {
-      video.play();
-    });
-  } 
-  // สำหรับ Safari บน iOS/Mac ที่มีความสามารถเล่น HLS ได้ในตัวอยู่แล้ว (Native Support)
-  else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-    video.src = videoSrc;
-    video.addEventListener('loadedmetadata', function() {
-      video.play();
-    });
-  }
-</script>
+  
   
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
