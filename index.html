@@ -2,6 +2,8 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
+ <!-- ใส่ลิงก์นี้ไว้ด้านบนของเว็บเพื่อดึงระบบเล่น vdo มาร่วมใช้งาน -->
+<script src="https://jsdelivr.net"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Fullscreen Video - แยกหมวดหมู่</title>
@@ -150,6 +152,51 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+
+ const video = document.getElementById('videoPlayer');
+const videoInput = document.getElementById('videoInput');
+const loadVideoBtn = document.getElementById('loadVideoBtn');
+
+// ฟังก์ชันสำหรับสั่งเล่นวิดีโอ
+function playVideo(url) {
+  if (!url) return;
+
+  // ตรวจสอบว่าเบราว์เซอร์รองรับ hls.js ไหม (เช่น Chrome, Firefox, Edge)
+  if (Hls.isSupported()) {
+    const hls = new Hls();
+    hls.loadSource(url);
+    hls.attachMedia(video);
+    hls.on(Hls.Events.MANIFEST_PARSED, function() {
+      video.play();
+    });
+  } 
+  // สำหรับ Safari ที่รองรับการเล่น .m3u8 เองอยู่แล้ว
+  else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    video.src = url;
+    video.addEventListener('loadedmetadata', function() {
+      video.play();
+    });
+  } 
+  // ถ้าเป็นวิดีโอทั่วไป เช่น .mp4
+  else {
+    video.src = url;
+    video.play();
+  }
+}
+
+// เมื่อคลิกปุ่ม "▶ เล่น" ให้ดึงลิงก์จากกล่องข้อความมาเปิด
+loadVideoBtn.addEventListener('click', () => {
+  const videoUrl = videoInput.value.trim();
+  playVideo(videoUrl);
+});
+
+// (แถม) เผื่อกด Enter ในกล่องข้อความแล้วให้เล่นได้เลย
+videoInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    const videoUrl = videoInput.value.trim();
+    playVideo(videoUrl);
+  }
+});
 
   /* ซ่อนกลุ่มที่ไม่ได้เลือก */
   .channel-group { display: contents; }
