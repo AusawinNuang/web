@@ -3,64 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IPTV Player</title>
-    <!-- โหลด Video.js สำหรับเล่นไฟล์ .m3u8 -->
+    <title>Wiseplay Web Player</title>
+    <!-- โหลดสไตล์ของ Video.js -->
     <link href="https://zencdn.net" rel="stylesheet" />
     <style>
-        body { font-family: sans-serif; background: #121212; color: #fff; text-align: center; }
-        .container { max-width: 800px; margin: 20px auto; }
-        .btn-group { margin-bottom: 20px; }
-        button { padding: 10px 15px; margin: 5px; cursor: pointer; background: #1e88e5; color: white; border: none; border-radius: 5px; }
-        button:hover { background: #1565c0; }
-        .video-container { width: 100%; aspect-ratio: 16/9; }
+        body { font-family: sans-serif; background: #1a1a1a; color: #fff; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .container { display: flex; width: 100%; max-width: 1200px; gap: 20px; margin-top: 20px; }
+        .player-box { flex: 2; background: #000; min-height: 450px; }
+        .playlist-box { flex: 1; background: #2a2a2a; max-height: 500px; overflow-y: auto; padding: 10px; border-radius: 5px; }
+        .channel-item { padding: 10px; background: #3a3a3a; margin-bottom: 5px; border-radius: 3px; cursor: pointer; transition: 0.2s; }
+        .channel-item:hover { background: #555; }
+        .video-js { width: 100% !important; height: 450px !important; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>เครื่องเล่น IPTV (MU TV & LFC TV)</h2>
-    
-    <!-- ปุ่มเลือกช่องที่จะเล่น -->
-    <div class="btn-group">
-        <button onclick="playChannel('https://cdn1.googlecdnforstreaming.live/live/mutv/playlist.m3u8', 'Mozilla/5.0 (Linux; Android 9; TrueID TV Build/PTT1.181126.002) AppleWebKit/537.36', 'https://warpdooball.net/')">
-            เล่น MU TV
-        </button>
-        <button onclick="playChannel('https://raw.githubusercontent.com/ALittleAnt4161/m3u8/refs/heads/main/LFCTV3.m3u8', 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15', 'https://github.com/')">
-            เล่น LFC TV (Link 1)
-        </button>
-        <button onclick="playChannel('https://cdn1.googlecdnforstreaming.live/live/lfctv/playlist.m3u8', 'Mozilla/5.0 (Linux; Android 7.1.2; TV BOX Build/NHG47L) AppleWebKit/537.36', 'https://warpdooball.net/')">
-            เล่น LFC TV (Link 2)
-        </button>
+    <h1>Wiseplay Web Player</h1>
+
+    <div class="container">
+        <!-- ส่วนเครื่องเล่นวิดีโอ -->
+        <div class="player-box">
+            <video id="my-video" class="video-js vjs-default-skin" controls preload="auto" width="640" height="264">
+                <p class="vjs-no-js">กรุณาเปิดใช้งาน JavaScript เพื่อรับชมวิดีโอ</p>
+            </video>
+        </div>
+
+        <!-- ส่วนแสดงรายการช่อง -->
+        <div class="playlist-box" id="playlist">
+            <p style="text-align: center;">กำลังโหลดเพลย์ลิสต์...</p>
+        </div>
     </div>
 
-    <!-- หน้าต่างเครื่องเล่นวิดีโอ -->
-    <div class="video-container">
-        <video id="my-video" class="video-js vjs-default-skin vjs-big-play-centered" controls preload="auto" width="800" height="450">
-            <p class="vjs-no-js">โปรดเปิดใช้งาน JavaScript เพื่อรับชมวิดีโอ</p>
-        </video>
-    </div>
-</div>
+    <!-- โหลดสคริปต์ของ Video.js -->
+    <script src="https://zencdn.net"></script>
 
-<script src="https://zencdn.net"></script>
-<script>
-    // ตั้งค่าตัวเล่นวิดีโอครั้งแรก
-    const player = videojs('my-video');
+    <script>
+        // ใส่ลิงก์ไฟล์ .w3u (JSON) หรือ .m3u ของคุณที่นี่
+        const PLAYLIST_URL = 'URL_PLAYLIST_ของคุุณ_ตรงนี้'; 
 
-    function playChannel(url, ua, ref) {
-        // แปลงลิงก์ให้วิ่งผ่านเซิร์ฟเวอร์ Proxy ของเรา พร้อมแนบค่าพารามิเตอร์ต่างๆ ไปด้วย
-        const proxyServer = 'http://localhost:3000/proxy';
-        const finalUrl = `${proxyServer}?url=${encodeURIComponent(url)}&ua=${encodeURIComponent(ua)}&ref=${encodeURIComponent(ref)}`;
-        
-        // สั่งให้เครื่องเล่นโหลดและแสดงผลวิดีโอชิ้นใหม่
-        player.src({
-            src: finalUrl,
-            type: 'application/x-mpegURL' // กำหนดประเภทให้เป็นสตรีมมิง HLS
-        });
-        
-        player.play().catch(err => {
-            console.log("กรุณากดเล่นวิดีโอด้วยตนเอง:", err);
-        });
-    }
-</script>
+        // เริ่มต้นระบบ Video.js Player
+        const player = videojs('my-video');
+
+        // ฟังก์ชันดึงและแปลงข้อมูลเพลย์ลิสต์
+        async function loadPlaylist() {
+            try {
+                const response = await fetch(PLAYLIST_URL);
+                const data = await response.json(); // สมมติว่าเป็นไฟล์ .w3u โครงสร้าง JSON
+                
+                // สำหรับ .w3u ส่วนใหญ่จะมีอาเรย์ของสถานีในคีย์ "stations" หรือ "groups"
+                // ตัวอย่างนี้อิงตามโครงสร้างมาตรฐานของ Wiseplay JSON (.w3u)
+                const stations = data.stations || [];
+                
+                const playlistContainer = document.getElementById('playlist');
+                playlistContainer.innerHTML = ''; // ล้างข้อความกำลังโหลด
+
+                if(stations.length === 0) {
+                    playlistContainer.innerHTML = '<p>ไม่พบช่องรายการ</p>';
+                    return;
+                }
+
+                stations.forEach(station => {
+                    const item = document.createElement('div');
+                    item.className = 'channel-item';
+                    item.innerText = station.name;
+                    
+                    // เมื่อคลิกช่อง ให้เปลี่ยนซอร์สวิดีโอแล้วสั่งเล่น
+                    item.onclick = () => {
+                        playVideo(station.url);
+                    };
+                    
+                    playlistContainer.appendChild(item);
+                });
+
+            } catch (error) {
+                console.error('Error loading playlist:', error);
+                document.getElementById('playlist').innerHTML = '<p style="color:red;">โหลดเพลย์ลิสต์ล้มเหลว (ตรวจเช็คปัญหา CORS)</p>';
+            }
+        }
+
+        // ฟังก์ชันสั่งเล่นวิดีโอ
+        function playVideo(videoUrl) {
+            // ตรวจสอบประเภทไฟล์เบื้องต้นเพื่อเลือก Type ให้ถูกต้อง (เช่น HLS หรือ MP4)
+            let type = 'video/mp4';
+            if (videoUrl.includes('.m3u8')) {
+                type = 'application/x-mpegURL'; // สำหรับสตรีมมิ่ง HLS
+            }
+
+            player.src({
+                src: videoUrl,
+                type: type
+            });
+            player.play();
+        }
+
+        // เรียกใช้งานเมื่อเปิดหน้าเว็บ
+        window.onload = loadPlaylist;
+    </script>
 </body>
 </html>
