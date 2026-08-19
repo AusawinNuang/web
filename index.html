@@ -3,34 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wiseplay Web Player</title>
+    <title>M3U / Wiseplay IPTV Web Player</title>
     <!-- โหลดสไตล์ของ Video.js -->
     <link href="https://zencdn.net" rel="stylesheet" />
     <style>
-        body { font-family: sans-serif; background: #1a1a1a; color: #fff; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .container { display: flex; width: 100%; max-width: 1200px; gap: 20px; margin-top: 20px; }
-        .player-box { flex: 2; background: #000; min-height: 450px; }
-        .playlist-box { flex: 1; background: #2a2a2a; max-height: 500px; overflow-y: auto; padding: 10px; border-radius: 5px; }
-        .channel-item { padding: 10px; background: #3a3a3a; margin-bottom: 5px; border-radius: 3px; cursor: pointer; transition: 0.2s; }
-        .channel-item:hover { background: #555; }
+        body { font-family: sans-serif; background: #121212; color: #fff; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .input-area { width: 100%; max-width: 1200px; display: flex; gap: 10px; margin-bottom: 20px; }
+        .input-area input { flex: 1; padding: 12px; border: 1px solid #333; background: #1e1e1e; color: #fff; border-radius: 6px; font-size: 16px; }
+        .input-area button { padding: 12px 24px; background: #e50914; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.2s; }
+        .input-area button:hover { background: #b80710; }
+        .container { display: flex; width: 100%; max-width: 1200px; gap: 20px; }
+        .player-box { flex: 2; background: #000; min-height: 450px; border-radius: 8px; overflow: hidden; border: 1px solid #333; }
+        .playlist-box { flex: 1; background: #1e1e1e; max-height: 450px; overflow-y: auto; padding: 15px; border-radius: 8px; border: 1px solid #333; box-sizing: border-box; }
+        .channel-item { display: flex; align-items: center; gap: 15px; padding: 12px; background: #2a2a2a; margin-bottom: 8px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+        .channel-item:hover { background: #3e3e3e; }
+        .channel-logo { width: 40px; height: 40px; object-fit: contain; background: #000; border-radius: 4px; border: 1px solid #444; }
+        .channel-name { font-weight: bold; font-size: 14px; }
         .video-js { width: 100% !important; height: 450px !important; }
+        .status-msg { text-align: center; color: #888; padding: 20px; }
     </style>
 </head>
 <body>
 
-    <h1>Wiseplay Web Player</h1>
+    <h1>IPTV Web Player (.m3u / .w3u)</h1>
+
+    <!-- แถบสำหรับวางลิงก์เพลย์ลิสต์ -->
+    <div class="input-area">
+        <input type="text" id="playlistUrl" placeholder="วางลิงก์เพลย์ลิสต์ (.m3u หรือ .w3u) ของคุณตรงนี้แล้วกดโหลด...">
+        <button onclick="fetchPlaylist()">โหลดเพลย์ลิสต์</button>
+    </div>
 
     <div class="container">
-        <!-- ส่วนเครื่องเล่นวิดีโอ -->
+        <!-- ตัวเล่นวิดีโอ -->
         <div class="player-box">
-            <video id="my-video" class="video-js vjs-default-skin" controls preload="auto" width="640" height="264">
-                <p class="vjs-no-js">กรุณาเปิดใช้งาน JavaScript เพื่อรับชมวิดีโอ</p>
-            </video>
+            <video id="my-video" class="video-js vjs-default-skin" controls preload="auto"></video>
         </div>
 
-        <!-- ส่วนแสดงรายการช่อง -->
+        <!-- รายชื่อช่องสตรีม -->
         <div class="playlist-box" id="playlist">
-            <p style="text-align: center;">กำลังโหลดเพลย์ลิสต์...</p>
+            <p class="status-msg">กรุณาวางลิงก์สตรีมของคุณในช่องด้านบน</p>
         </div>
     </div>
 
@@ -38,66 +49,111 @@
     <script src="https://zencdn.net"></script>
 
     <script>
-        // ใส่ลิงก์ไฟล์ .w3u (JSON) หรือ .m3u ของคุณที่นี่
-        const PLAYLIST_URL = 'URL_PLAYLIST_ของคุุณ_ตรงนี้'; 
-
-        // เริ่มต้นระบบ Video.js Player
+        // เริ่มทำงานตัวเล่น Video.js
         const player = videojs('my-video');
 
-        // ฟังก์ชันดึงและแปลงข้อมูลเพลย์ลิสต์
-        async function loadPlaylist() {
+        // สำคัญ: ปรับ URL นี้ให้ชี้ไปที่เซิร์ฟเวอร์ Node.js Proxy ของคุณเพื่อ Bypass ค่าล็อก Header ตอนเล่นสตรีม
+        const PROXY_SERVER = 'http://localhost:3000/proxy'; 
+
+        async function fetchPlaylist() {
+            const urlInput = document.getElementById('playlistUrl').value.trim();
+            const container = document.getElementById('playlist');
+
+            if (!urlInput) {
+                alert('กรุณาใส่ลิงก์เพลย์ลิสต์ก่อนครับ');
+                return;
+            }
+
+            container.innerHTML = '<p class="status-msg">กำลังดาวน์โหลดข้อมูลเพลย์ลิสต์...</p>';
+
             try {
-                const response = await fetch(PLAYLIST_URL);
-                const data = await response.json(); // สมมติว่าเป็นไฟล์ .w3u โครงสร้าง JSON
+                // ดึงข้อมูลเพลย์ลิสต์ข้อความผ่าน Public CORS Proxy เพื่อเลี่ยงปัญหาเบราว์เซอร์บล็อก
+                const response = await fetch(`https://allorigins.win{encodeURIComponent(urlInput)}`);
+                if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลจากลิงก์ดังกล่าวได้');
                 
-                // สำหรับ .w3u ส่วนใหญ่จะมีอาเรย์ของสถานีในคีย์ "stations" หรือ "groups"
-                // ตัวอย่างนี้อิงตามโครงสร้างมาตรฐานของ Wiseplay JSON (.w3u)
-                const stations = data.stations || [];
-                
-                const playlistContainer = document.getElementById('playlist');
-                playlistContainer.innerHTML = ''; // ล้างข้อความกำลังโหลด
+                const jsonWrapper = await response.json();
+                const m3uRawText = jsonWrapper.contents;
 
-                if(stations.length === 0) {
-                    playlistContainer.innerHTML = '<p>ไม่พบช่องรายการ</p>';
-                    return;
-                }
-
-                stations.forEach(station => {
-                    const item = document.createElement('div');
-                    item.className = 'channel-item';
-                    item.innerText = station.name;
-                    
-                    // เมื่อคลิกช่อง ให้เปลี่ยนซอร์สวิดีโอแล้วสั่งเล่น
-                    item.onclick = () => {
-                        playVideo(station.url);
-                    };
-                    
-                    playlistContainer.appendChild(item);
-                });
+                // ตรวจสอบและแปลงข้อความดิบ M3U
+                const channels = parseM3U(m3uRawText);
+                renderPlaylist(channels);
 
             } catch (error) {
-                console.error('Error loading playlist:', error);
-                document.getElementById('playlist').innerHTML = '<p style="color:red;">โหลดเพลย์ลิสต์ล้มเหลว (ตรวจเช็คปัญหา CORS)</p>';
+                console.error(error);
+                container.innerHTML = '<p class="status-msg" style="color:#ff6b6b;">โหลดเพลย์ลิสต์ล้มเหลว ตรวจสอบลิงก์ใหม่อีกครั้ง</p>';
             }
         }
 
-        // ฟังก์ชันสั่งเล่นวิดีโอ
-        function playVideo(videoUrl) {
-            // ตรวจสอบประเภทไฟล์เบื้องต้นเพื่อเลือก Type ให้ถูกต้อง (เช่น HLS หรือ MP4)
-            let type = 'video/mp4';
-            if (videoUrl.includes('.m3u8')) {
-                type = 'application/x-mpegURL'; // สำหรับสตรีมมิ่ง HLS
+        // ฟังก์ชันแกะ Text รูปแบบ M3U ออกมาเป็น Array ข้อมูล
+        function parseM3U(text) {
+            const lines = text.split('\n');
+            const channels = [];
+            let current = null;
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                
+                if (line.startsWith('#EXTINF:')) {
+                    current = { ua: '', ref: '', logo: '' };
+                    
+                    // ดึงลิงก์รูปโลโก้ช่อง
+                    const logoMatch = line.match(/tvg-logo="([^"]+)"/);
+                    if (logoMatch) current.logo = logoMatch[1];
+                    
+                    // ดึงชื่อช่องรายการ
+                    const parts = line.split(',');
+                    current.name = parts[parts.length - 1].trim();
+                    
+                } else if (line.startsWith('#EXTVLCOPT:http-user-agent=')) {
+                    if (current) current.ua = line.replace('#EXTVLCOPT:http-user-agent=', '').trim();
+                    
+                } else if (line.startsWith('#EXTVLCOPT:http-referrer=')) {
+                    if (current) current.ref = line.replace('#EXTVLCOPT:http-referrer=', '').trim();
+                    
+                } else if (line.startsWith('http')) {
+                    if (current) {
+                        current.url = line;
+                        channels.push(current);
+                        current = null; // รีเซ็ตเพื่อรอรับช่องถัดไป
+                    }
+                }
+            }
+            return channels;
+        }
+
+        // ฟังก์ชันสร้าง UI รายการช่องให้กดคลิก
+        function renderPlaylist(channels) {
+            const container = document.getElementById('playlist');
+            container.innerHTML = ''; // ล้างสถานะกำลังโหลด
+
+            if (channels.length === 0) {
+                container.innerHTML = '<p class="status-msg">ไม่พบรายการช่องสตรีมมิ่งที่ถูกต้อง</p>';
+                return;
             }
 
-            player.src({
-                src: videoUrl,
-                type: type
+            channels.forEach(ch => {
+                const item = document.createElement('div');
+                item.className = 'channel-item';
+                
+                // หากไม่มีโลโก้ให้ใช้ภาพกล่องสีดำแทน
+                const logoSrc = ch.logo ? ch.logo : 'data:image/svg+xml;utf8,<svg xmlns="http://w3.org" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" fill="%23000"/></svg>';
+                
+                item.innerHTML = `<img class="channel-logo" src="${logoSrc}"> <span class="channel-name">${ch.name}</span>`;
+                
+                item.onclick = () => {
+                    // ส่งต่อลิงก์วิดีโอและตัวแปลงค่าความปลอดภัยผ่านเซิร์ฟเวอร์ Proxy หลังบ้านของคุณ
+                    const finalStreamUrl = `${PROXY_SERVER}?url=${encodeURIComponent(ch.url)}&ua=${encodeURIComponent(ch.ua)}&ref=${encodeURIComponent(ch.ref)}`;
+                    
+                    player.src({
+                        src: finalStreamUrl,
+                        type: 'application/x-mpegURL'
+                    });
+                    player.play();
+                };
+                
+                container.appendChild(item);
             });
-            player.play();
         }
-
-        // เรียกใช้งานเมื่อเปิดหน้าเว็บ
-        window.onload = loadPlaylist;
     </script>
 </body>
 </html>
